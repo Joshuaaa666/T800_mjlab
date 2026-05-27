@@ -1,3 +1,20 @@
+# conda
+sudo apt install -y libyaml-cpp-dev libboost-all-dev libeigen3-dev            
+  libspdlog-dev libfmt-dev
+conda activate unitree_rl_mjlab
+cd "/home/joshua/文档/xwechat_files/wxid_h7jcp95erjpw22_c815/msg/file/2026-05/倒地起身V1/unitree_rl_mjlab"
+python3 scripts/play.py T800-1307-Stage-I \
+  --motion-file data/act01_attack_uppercut.npz \
+  --viewer native \
+  --checkpoint-file logs/rsl_rl/t800_tracking/2026-05-26_09-57-09/model_31000.pt
+
+  
+python3 scripts/play_interactive.py T800-1307-Stage-I \
+  --motion-file data/act01_attack_uppercut.npz \
+  --viewer native \
+  --checkpoint-file logs/rsl_rl/t800_tracking/2026-05-26_09-57-09/model_31000.pt \
+  --push-strength 10.0
+
 docker build -t mjlab .
 
 
@@ -38,6 +55,3 @@ python3 scripts/play.py T800-1307-Stage-I \
   --motion-file data/act01_attack_uppercut.npz \
   --checkpoint-file logs/rsl_rl/t800_tracking/2026-05-26_09-57-09/model_31000.pt \
   --video-length 689
-
-
-python scripts/play.py T800-1307-Stage-I --motion-file data/act01_attack_uppercut.npz --viewer native --checkpoint-file

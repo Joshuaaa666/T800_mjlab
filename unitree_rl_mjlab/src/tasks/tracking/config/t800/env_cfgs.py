@@ -15,7 +15,7 @@ from src.tasks.tracking.tracking_standing_env_cfg import (
 def _apply_play_overrides(cfg: ManagerBasedRlEnvCfg, *, standing: bool) -> None:
   cfg.episode_length_s = int(1e9)
   cfg.observations["actor"].enable_corruption = False
-  # cfg.events.pop("push_robot", None)
+  cfg.events.pop("push_robot", None)  # Disable auto push for manual control
 
   motion_cmd = cfg.commands["motion"]
   motion_cmd.pose_range = {}
