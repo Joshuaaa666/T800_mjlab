@@ -8,6 +8,12 @@ python3 scripts/play.py T800-1307-Stage-I \
   --viewer native \
   --checkpoint-file logs/rsl_rl/t800_tracking/2026-05-26_09-57-09/model_31000.pt
 
+  
+python3 scripts/play_interactive.py T800-1307-Stage-I \
+  --motion-file data/act01_attack_uppercut.npz \
+  --viewer native \
+  --checkpoint-file logs/rsl_rl/t800_tracking/2026-05-26_09-57-09/model_31000.pt \
+  --push-strength 10.0
 
 docker build -t mjlab .
 

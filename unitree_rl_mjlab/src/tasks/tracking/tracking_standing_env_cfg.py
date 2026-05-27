@@ -34,12 +34,12 @@ MotionStandingCommandCfg = mdp.MotionStandingCommandCfg
 TolerantTermination = mdp.TolerantTermination
 
 VELOCITY_RANGE = {
-  "x": (-5.0, 5.0),
-  "y": (-5.0, 5.0),
-  "z": (-2.0, 2.0),
-  "roll": (-5.2, 5.2),
-  "pitch": (-5.2, 5.2),
-  "yaw": (-7.8, 7.8),
+  "x": (-0.5, 0.5),
+  "y": (-0.5, 0.5),
+  "z": (-0.2, 0.2),
+  "roll": (-0.52, 0.52),
+  "pitch": (-0.52, 0.52),
+  "yaw": (-0.78, 0.78),
 }
 
 VELOCITY_RANGE_ADD = {
