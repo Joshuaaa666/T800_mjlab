@@ -1,0 +1,96 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb
+
+# PyCharm
+.pytest_cache/
+.coverage
+htmlcov/
+
+# MuJoCo & RL specific
+logs/
+videos/
+checkpoints/
+wandb/
+*.pt
+*.pth
+*.onnx
+*.onnx.data
+runs/
+
+# Data files (too large)
+*.npz
+data/
+datasets/
+
+# Build artifacts
+*.o
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+.#*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor backup files
+*~
+*.bak
+
+# Large compiled/cached files
+*/__pycache__/*
+*.egg-info
+.pytest_cache
+.mypy_cache
+
+# Conda environment files (except environment.yml)
+conda-pack/
+
+# Docker files (build context)
+.dockerignore
