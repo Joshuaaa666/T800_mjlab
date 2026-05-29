@@ -56,7 +56,9 @@ def _apply_t800_standing_command_cfg(cfg: ManagerBasedRlEnvCfg) -> None:
   """T800-specific settings for MotionStandingCommand."""
   motion_cmd = cfg.commands["motion"]
   assert isinstance(motion_cmd, MotionStandingCommandCfg)
-  motion_cmd.init_pos_file = ""
+  # GRSI: 预采集的 T800 倒地姿态数据集 (4096种, 由 robot_data.csv 转换)
+  motion_cmd.init_pos_file = "data/t800_init_states_8192.pth"
+  # tracking_standing_weight 默认 (1.0, 1.0), 50%起身/50%跟踪交替训练
   motion_cmd.root_body_name = ("LINK_BASE",)
   motion_cmd.shoulders_body_names = (
     "LINK_SHOULDER_ROLL_L",
@@ -394,12 +396,45 @@ def make_tracking_standing_env_cfg() -> ManagerBasedRlEnvCfg:
 
 
 def _apply_1307_stage_I(cfg: ManagerBasedRlEnvCfg) -> None:
-  terminations = cfg.terminations["tracking_failure"].func
-  for name, _func, params in terminations.terms:
+  terminations = cfg.terminations["tracking_failure"]
+  term_func = terminations.func
+  # 放宽终止阈值，给机器人更多倒地挣扎时间
+  for name, _func, params in term_func.terms:
     if name == "anchor_pos_z":
-      params["threshold"] = 0.5
+      params["threshold"] = 0.8    # 原0.5 → 0.8
+    if name == "anchor_ori":
+      params["threshold"] = 1.2    # 原0.8 → 1.2
     if name == "ee_body_pos_z":
-      params["threshold"] = 0.4
+      params["threshold"] = 0.8    # 原0.4 → 0.8
+  # 延长容错时间
+  term_func.bad_tracking_time_threshold_s = 8.0  # 原3.0秒 → 8.0秒
+
+  # ===== 新增：随机初始化，让机器人从地上出生 =====
+  cfg.events.update({
+    "reset_base": EventTermCfg(
+      func=mdp.reset_root_state_uniform,
+      mode="reset",
+      params={
+        "pose_range": {
+          "x": (-0.1, 0.1), "y": (-0.1, 0.1),
+          "z": (0.3, 0.5),  # 0.8+0.3=1.1m ~ 0.8+0.5=1.3m高空坠落摔地
+        },
+        "velocity_range": {
+          "x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (-0.3, 0.3),
+          "roll": (-0.8, 0.8), "pitch": (-0.8, 0.8), "yaw": (-0.8, 0.8),
+        },
+      },
+    ),
+    "reset_robot_joints": EventTermCfg(
+      func=mdp.reset_joints_by_offset,
+      mode="reset",
+      params={
+        "position_range": (0.0, 0.0),   # 官方无随机关节,完全靠GRSI提供多样性
+        "velocity_range": (0.0, 0.0),
+        "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+      },
+    ),
+  })
 
 
 def make_tracking_standing_env_cfg_1307_stage_I_base() -> ManagerBasedRlEnvCfg:
@@ -458,12 +493,19 @@ def _apply_1307_stage_III(cfg: ManagerBasedRlEnvCfg) -> None:
       mode="reset",
       params={},
     ),
+    # 继承 Stage I 的倒地初始化 + Stage III 的更强速度扰动
     "reset_base": EventTermCfg(
       func=mdp.reset_root_state_uniform,
       mode="reset",
       params={
-        "pose_range": {"x": (-0.15, 0.15), "y": (-0.15, 0.15), "z": (-0.15, 0.15)},
-        "velocity_range": {"x": (-0.75, 0.75), "y": (-0.75, 0.75), "z": (-0.3, 0.3), "roll": (-0.78, 0.78), "pitch": (-0.78, 0.78), "yaw": (-1.17, 1.17)},
+        "pose_range": {
+          "x": (-0.1, 0.1), "y": (-0.1, 0.1),
+          "z": (0.3, 0.5),  # 高空坠落摔地 (同 Stage I)
+        },
+        "velocity_range": {
+          "x": (-0.75, 0.75), "y": (-0.75, 0.75), "z": (-0.3, 0.3),
+          "roll": (-0.78, 0.78), "pitch": (-0.78, 0.78), "yaw": (-1.17, 1.17),
+        },
       },
     ),
     "push_robot": EventTermCfg(
@@ -472,10 +514,12 @@ def _apply_1307_stage_III(cfg: ManagerBasedRlEnvCfg) -> None:
       interval_range_s=(1.0, 3.0),
       params={"velocity_range": VELOCITY_RANGE_ADD},
     ),
+    # GRSI文件已提供倒地姿态关节角度, 这里仅加微小扰动保留GRSI数据
     "reset_robot_joints": EventTermCfg(
       func=mdp.reset_joints_by_offset,
       mode="reset",
       params={
+        # GRSI文件提供关节角度, (0.0,0.0)不覆盖 (同官方)
         "position_range": (0.0, 0.0),
         "velocity_range": (0.0, 0.0),
         "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
