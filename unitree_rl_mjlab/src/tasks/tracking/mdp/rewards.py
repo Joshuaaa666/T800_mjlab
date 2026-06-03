@@ -282,3 +282,30 @@ def reward_center_of_mass(
   reward = torch.exp(-error_sq / (sigma_com ** 2))
 
   return reward * single_support
+
+# 新增起身奖励
+def reward_base_height_standing(
+    env: ManagerBasedRlEnv,
+    command_name: str,
+    sigma: float,
+    ground_threshold: float = 0.5,
+) -> torch.Tensor:
+    """奖励倒地时躯干高度接近站立值，引导站起来。"""
+    from .commands import MotionCommand
+    command = cast(MotionCommand, env.command_manager.get_term(command_name))
+    
+    # 肩膀平均高度——判断是否倒地
+    shoulder_z = command.robot_body_pos_w[:, command.shoulders_indexes, 2].mean(dim=1)
+    
+    # 目标躯干高度 vs 当前躯干高度
+    target_z = command.anchor_pos_w[:, 2]
+    current_z = command.robot_anchor_pos_w[:, 2]
+    
+    # 肩膀低于 0.5m 才激活
+    on_ground = (shoulder_z < ground_threshold).float()
+    
+    # 躯干越接近站立高度、奖励越高
+    error = torch.abs(current_z - target_z)
+    reward = torch.exp(-error / sigma) * on_ground
+    
+    return reward

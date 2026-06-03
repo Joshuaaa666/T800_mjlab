@@ -727,6 +727,7 @@ class MotionStandingCommand(MotionCommand):
     self.root_index = _get_body_indexes(self, cfg.root_body_name)
     self.shoulders_indexes = _get_body_indexes(self, cfg.shoulders_body_names)
     self.feet_indexes = _get_body_indexes(self, cfg.feet_body_names)
+    self.knee_indexes = _get_body_indexes(self, cfg.knee_body_names)
 
   def _resample_command(self, env_ids: torch.Tensor):
     if self.cfg.sampling_mode == "start":
@@ -891,6 +892,7 @@ class MotionStandingCommandCfg(MotionCommandCfg):
   root_body_name: tuple[str, ...]
   shoulders_body_names: tuple[str, ...]
   feet_body_names: tuple[str, ...]
+  knee_body_names: tuple[str, ...] = ()
   tracking_standing_weight: tuple[float, float] = (1.0, 1.0)
 
   def build(self, env: ManagerBasedRlEnv) -> MotionStandingCommand:

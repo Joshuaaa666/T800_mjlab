@@ -18,10 +18,10 @@ ENV PATH="/app/.venv/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sb
 ENV PYTHONPATH="/workspace/unitree_rl_mjlab"
 
 # 升级到项目需要的 mjlab 版本
-RUN PYTHONDONTWRITEBYTECODE=1 uv pip install --python /app/.venv/bin/python --no-cache mjlab==1.2.0 \
+RUN UV_COMPILE_BYTECODE=0 uv pip install --python /app/.venv/bin/python --no-cache mjlab==1.2.0 \
     && python -c "import mjlab; print('mjlab upgraded OK')"
 
 # 锁定 warp-lang 到兼容版本
-RUN uv pip install --python /app/.venv/bin/python --no-cache "warp-lang<1.13"
-
+RUN UV_COMPILE_BYTECODE=0 uv pip install --python /app/.venv/bin/python --no-cache "warp-lang<1.13"
+RUN UV_COMPILE_BYTECODE=0 uv pip install --python /app/.venv/bin/python --no-cache torch
 CMD ["bash"]

@@ -401,27 +401,28 @@ def _apply_1307_stage_I(cfg: ManagerBasedRlEnvCfg) -> None:
   # 放宽终止阈值，给机器人更多倒地挣扎时间
   for name, _func, params in term_func.terms:
     if name == "anchor_pos_z":
-      params["threshold"] = 0.8    # 原0.5 → 0.8
+      params["threshold"] = 0.5    # 原0.5 → 0.8
     if name == "anchor_ori":
-      params["threshold"] = 1.2    # 原0.8 → 1.2
+      params["threshold"] = 0.8    # 原0.8 → 1.2
     if name == "ee_body_pos_z":
-      params["threshold"] = 0.8    # 原0.4 → 0.8
+      params["threshold"] = 0.4    # 原0.4 → 0.8
   # 延长容错时间
-  term_func.bad_tracking_time_threshold_s = 8.0  # 原3.0秒 → 8.0秒
+  term_func.bad_tracking_time_threshold_s = 4.0  # 原3.0秒 → 8.0秒
 
-  # ===== 新增：随机初始化，让机器人从地上出生 =====
+  # ===== 域随机化：初始位置小扰动 (同官方G1) =====
+  # 备注: GRSI init_file 已为 standing task 提供倒地姿态, reset_base 只做小扰动
   cfg.events.update({
     "reset_base": EventTermCfg(
       func=mdp.reset_root_state_uniform,
       mode="reset",
       params={
         "pose_range": {
-          "x": (-0.1, 0.1), "y": (-0.1, 0.1),
-          "z": (0.3, 0.5),  # 0.8+0.3=1.1m ~ 0.8+0.5=1.3m高空坠落摔地
+          "x": (-0.15, 0.15), "y": (-0.15, 0.15),
+          "z": (-0.2, 0.2),  # T800 高1.7m, 按比例 (±0.15×1.7/1.35) ≈ ±0.2
         },
         "velocity_range": {
-          "x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (-0.3, 0.3),
-          "roll": (-0.8, 0.8), "pitch": (-0.8, 0.8), "yaw": (-0.8, 0.8),
+          "x": (-0.75, 0.75), "y": (-0.75, 0.75), "z": (-0.3, 0.3),
+          "roll": (-0.78, 0.78), "pitch": (-0.78, 0.78), "yaw": (-1.17, 1.17),
         },
       },
     ),
@@ -445,6 +446,18 @@ def make_tracking_standing_env_cfg_1307_stage_I_base() -> ManagerBasedRlEnvCfg:
 
 def make_tracking_standing_env_cfg_1307_stage_I() -> ManagerBasedRlEnvCfg:
   return _finalize_t800_standing_cfg(make_tracking_standing_env_cfg_1307_stage_I_base())
+
+
+def make_tracking_standing_env_cfg_1307_stage_I_with_reward() -> ManagerBasedRlEnvCfg:
+  cfg = make_tracking_standing_env_cfg_1307_stage_I()
+  cfg.rewards.update({
+    "reward_base_height_standing": RewardTermCfg(
+      func=mdp.reward_base_height_standing,
+      weight=3.0,
+      params={"command_name": "motion", "sigma": 0.3},
+    ),
+  })
+  return cfg
 
 
 def _apply_1307_stage_II(cfg: ManagerBasedRlEnvCfg) -> None:
@@ -493,14 +506,14 @@ def _apply_1307_stage_III(cfg: ManagerBasedRlEnvCfg) -> None:
       mode="reset",
       params={},
     ),
-    # 继承 Stage I 的倒地初始化 + Stage III 的更强速度扰动
+    # 域随机化：初始位置小扰动 (同官方G1)
     "reset_base": EventTermCfg(
       func=mdp.reset_root_state_uniform,
       mode="reset",
       params={
         "pose_range": {
-          "x": (-0.1, 0.1), "y": (-0.1, 0.1),
-          "z": (0.3, 0.5),  # 高空坠落摔地 (同 Stage I)
+          "x": (-0.15, 0.15), "y": (-0.15, 0.15),
+          "z": (-0.2, 0.2),  # T800 高1.7m, 按比例 (±0.15×1.7/1.35) ≈ ±0.2
         },
         "velocity_range": {
           "x": (-0.75, 0.75), "y": (-0.75, 0.75), "z": (-0.3, 0.3),

@@ -15,7 +15,7 @@ python3 unitree_rl_mjlab/scripts/check_training.py
 
 ## 查看可视化
 ```bash
-python3 -m tensorboard.main --logdir unitree_rl_mjlab/logs/rsl_rl/t800_tracking/
+python3 -m tensorboard.main --logdir unitree_rl_mjlab/logs/rsl_rl/t800_tracking/2026-05-29_02-30-53/
 # 浏览器: http://localhost:6006
 ```
 
@@ -77,7 +77,7 @@ python3 scripts/play_interactive.py T800-1307-Stage-I \
 
 | 阶段 | 终止条件 | 特殊事件 | 奖励 |
 |------|---------|---------|------|
-| **Stage I** | 宽松: anchor_z=0.8, ori=1.2, ee_z=0.8；容错8s | 高空坠落z:(0.3,0.5)、GRSI、随机推力 | 基础跟踪奖励+起身奖励 |
+| **Stage I** | 宽松: anchor_z=0.8, ori=1.2, ee_z=0.8；容错8s | 域随机化小扰动、GRSI、随机推力 | 基础跟踪奖励+起身奖励 |
 | **Stage II** | 收紧: ori=0.6；移除z条件；加hip_dof限制 | 同Stage I | +COM reward (1.0) |
 | **Stage III** | 同Stage II | +随机地形、更强推力、更强速度扰动 | 同Stage II |
 
@@ -91,7 +91,7 @@ reward_center_of_mass               weight=1.0    # 重心控制 (Stage II+)
 
 ## GRSI (倒地姿态数据集)
 - 文件: `data/t800_init_states_8192.pth`
-- 来源: `data/robot_data.csv` (4096种倒地姿态)
+- 来源: `data/robot_data.csv` (4096种倒地姿态，通过 GRSI init_file 加载)
 - 转换脚本: `scripts/csv_to_gksi.py`
 - 配置: `tracking_standing_env_cfg.py` → `init_pos_file`
 

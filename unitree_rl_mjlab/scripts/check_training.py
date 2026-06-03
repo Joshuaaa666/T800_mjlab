@@ -2,7 +2,7 @@
 """T800 Training Status Checker
 Usage:
   python3 scripts/check_training.py                          # latest run
-  python3 scripts/check_training.py 2026-05-27_11-27-55      # specific run
+  python3 scripts/check_training.py 2026-06-02_10-28-58      # specific run
 """
 import os, sys, glob
 import numpy as np
@@ -41,6 +41,7 @@ def main():
 
     # 1. Progress
     rew_vals, step = get('Train/mean_reward', ea)
+    ep_vals = None
     if rew_vals:
         ep_vals, _ = get('Train/mean_episode_length', ea)
         hrs = step * 5.09 / 3600 if step else 0
