@@ -396,46 +396,27 @@ def make_tracking_standing_env_cfg() -> ManagerBasedRlEnvCfg:
 
 
 def _apply_1307_stage_I(cfg: ManagerBasedRlEnvCfg) -> None:
+  # ① 增大肩关节惩罚权重，抑制手撑地
+  cfg.rewards["penalty_relative_shoulder_high"].weight = -5.0
+
+  # ② 去掉随机推力，让机器人专注从静止倒地状态起身
+  cfg.events.pop("push_robot", None)
+
   terminations = cfg.terminations["tracking_failure"]
   term_func = terminations.func
   # 放宽终止阈值，给机器人更多倒地挣扎时间
   for name, _func, params in term_func.terms:
     if name == "anchor_pos_z":
-      params["threshold"] = 0.5    # 原0.5 → 0.8
+      params["threshold"] = 0.6    # 原0.5 → 0.6
     if name == "anchor_ori":
-      params["threshold"] = 0.8    # 原0.8 → 1.2
+      params["threshold"] = 0.8    # 原0.8 
     if name == "ee_body_pos_z":
       params["threshold"] = 0.4    # 原0.4 → 0.8
   # 延长容错时间
-  term_func.bad_tracking_time_threshold_s = 4.0  # 原3.0秒 → 8.0秒
+  term_func.bad_tracking_time_threshold_s = 6.0  # 原3.0秒 → 8.0秒
 
-  # ===== 域随机化：初始位置小扰动 (同官方G1) =====
-  # 备注: GRSI init_file 已为 standing task 提供倒地姿态, reset_base 只做小扰动
-  cfg.events.update({
-    "reset_base": EventTermCfg(
-      func=mdp.reset_root_state_uniform,
-      mode="reset",
-      params={
-        "pose_range": {
-          "x": (-0.15, 0.15), "y": (-0.15, 0.15),
-          "z": (-0.2, 0.2),  # T800 高1.7m, 按比例 (±0.15×1.7/1.35) ≈ ±0.2
-        },
-        "velocity_range": {
-          "x": (-0.75, 0.75), "y": (-0.75, 0.75), "z": (-0.3, 0.3),
-          "roll": (-0.78, 0.78), "pitch": (-0.78, 0.78), "yaw": (-1.17, 1.17),
-        },
-      },
-    ),
-    "reset_robot_joints": EventTermCfg(
-      func=mdp.reset_joints_by_offset,
-      mode="reset",
-      params={
-        "position_range": (0.0, 0.0),   # 官方无随机关节,完全靠GRSI提供多样性
-        "velocity_range": (0.0, 0.0),
-        "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-      },
-    ),
-  })
+  
+  
 
 
 def make_tracking_standing_env_cfg_1307_stage_I_base() -> ManagerBasedRlEnvCfg:
@@ -450,6 +431,41 @@ def make_tracking_standing_env_cfg_1307_stage_I() -> ManagerBasedRlEnvCfg:
 
 def make_tracking_standing_env_cfg_1307_stage_I_with_reward() -> ManagerBasedRlEnvCfg:
   cfg = make_tracking_standing_env_cfg_1307_stage_I()
+
+  # 拉宽std，恢复梯度信号
+  cfg.rewards["motion_body_pos"].params["std"] = 0.8                          
+  cfg.rewards["motion_body_ori"].params["std"] = 0.8                          
+  cfg.rewards["motion_global_root_pos"].params["std"] = 0.6
+  cfg.rewards["motion_global_root_ori"].params["std"] = 0.6
+
+  # 去掉 tracking_failure：97.9% 的早终止让机器人学不完站立动作             
+  cfg.terminations.pop("tracking_failure", None) 
+  cfg.rewards["penalty_relative_shoulder_high"].weight = -3.0
+  cfg.rewards.update({
+    "reward_base_height_standing": RewardTermCfg(
+      func=mdp.reward_base_height_standing,
+      weight=3.0,
+      params={"command_name": "motion", "sigma": 0.3},
+    ),
+  })
+  return cfg
+
+
+def make_tracking_standing_env_cfg_1307_stage_I_with_reward_onlybase() -> ManagerBasedRlEnvCfg:
+  """原始with_reward配置：保留tracking_failure和原始std，仅加底座高度奖励"""
+  cfg = make_tracking_standing_env_cfg_1307_stage_I()
+
+  # 恢复原始 shoulder penalty weight（_apply_1307_stage_I 改成了 -5.0）
+  cfg.rewards["penalty_relative_shoulder_high"].weight = -2.0
+
+  # 恢复 push_robot（_apply_1307_stage_I 弹出了它）
+  cfg.events["push_robot"] = EventTermCfg(
+    func=mdp.push_by_setting_velocity,
+    mode="interval",
+    interval_range_s=(1.0, 3.0),
+    params={"velocity_range": VELOCITY_RANGE},
+  )
+
   cfg.rewards.update({
     "reward_base_height_standing": RewardTermCfg(
       func=mdp.reward_base_height_standing,

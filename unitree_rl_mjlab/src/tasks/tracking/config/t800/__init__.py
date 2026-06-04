@@ -6,6 +6,7 @@ from .env_cfgs import (
   t800_flat_tracking_standing_env_cfg,
   t800_flat_tracking_standing_env_cfg_1307_stage_I,
   t800_flat_tracking_standing_env_cfg_1307_stage_I_with_reward,
+  t800_flat_tracking_standing_env_cfg_1307_stage_I_with_reward_onlybase,
   t800_flat_tracking_standing_env_cfg_1307_stage_II,
   t800_flat_tracking_standing_env_cfg_1307_stage_III,
 )
@@ -65,6 +66,14 @@ register_mjlab_task(
   task_id="T800-1307-Stage-I-WithReward",
   env_cfg=t800_flat_tracking_standing_env_cfg_1307_stage_I_with_reward(),
   play_env_cfg=t800_flat_tracking_standing_env_cfg_1307_stage_I_with_reward(play=True),
+  rl_cfg=t800_tracking_ppo_runner_cfg(),
+  runner_cls=MotionTrackingOnPolicyRunner,
+)
+
+register_mjlab_task(
+  task_id="T800-1307-Stage-I-WithReward-OnlyBase",
+  env_cfg=t800_flat_tracking_standing_env_cfg_1307_stage_I_with_reward_onlybase(),
+  play_env_cfg=t800_flat_tracking_standing_env_cfg_1307_stage_I_with_reward_onlybase(play=True),
   rl_cfg=t800_tracking_ppo_runner_cfg(),
   runner_cls=MotionTrackingOnPolicyRunner,
 )

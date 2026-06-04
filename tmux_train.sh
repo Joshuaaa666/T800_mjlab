@@ -5,8 +5,8 @@
 
 # 训练B配置（加躯干起身奖励）
 TRAIN_B_GPU="6"
-TRAIN_B_RUN="2026-06-02_06-42-18"
-TRAIN_B_CKPT="model_17000.pt"
+TRAIN_B_RUN="2026-06-03_02-20-40"
+TRAIN_B_CKPT="model_7500.pt"
 
 SESSION="mjlab_train"
 PROJECT_DIR="/home/wangyirong/projects/倒地起身V1"
@@ -48,6 +48,32 @@ start() {
     echo "✅ 训练已启动 (TMUX: $SESSION)"
     echo "   连接: tmux attach -t $SESSION"
     echo "   TensorBoard: http://localhost:6006"
+}
+
+train_A() {
+    local GPU="1"
+
+    tmux kill-session -t train_A 2>/dev/null
+    tmux new-session -d -s train_A -n "train_A"
+
+    tmux send-keys -t train_A:0 \
+        "cd $PROJECT_DIR && \
+         docker run -it --rm --gpus all \
+           -e CUDA_VISIBLE_DEVICES=$GPU \
+           -v ./unitree_rl_mjlab/:/workspace/unitree_rl_mjlab/ \
+           -v ./logs:/workspace/logs \
+           $DOCKER_IMAGE bash -c '
+             cd /workspace/unitree_rl_mjlab && \
+             WANDB_MODE=disabled python scripts/train.py T800-1307-Stage-I-WithReward \
+               --motion-file data/act01_attack_uppercut.npz \
+               --env.scene.num-envs 8192 \
+               --env.commands.motion.sampling-mode adaptive \
+               --gpu-ids \"[0]\" \
+               --video True --video-interval 20000
+           '" C-m
+
+    echo "✅ train_A 全新训练已启动 (GPU $GPU, 使用新配置)"
+    echo "   连接: tmux attach -t train_A"
 }
 
 train_B() {
@@ -110,6 +136,72 @@ fresh() {
     echo "   连接: tmux attach -t train_B"
 }
 
+train_C() {
+    local GPU="0"
+    local RUN_DIR="2026-06-02_10-28-58"
+    local CKPT="model_21000.pt"
+
+    tmux kill-session -t train_C 2>/dev/null
+    tmux new-session -d -s train_C -n "train_C"
+
+    tmux send-keys -t train_C:0 \
+        "cd $PROJECT_DIR && \
+         docker run -it --rm --gpus all \
+           -e CUDA_VISIBLE_DEVICES=$GPU \
+           -v ./unitree_rl_mjlab/:/workspace/unitree_rl_mjlab/ \
+           -v ./logs:/workspace/logs \
+           -e RUN_DIR=$RUN_DIR \
+           -e CKPT=$CKPT \
+           $DOCKER_IMAGE bash -c '
+             cd /workspace/unitree_rl_mjlab && \
+             WANDB_MODE=disabled python scripts/train.py T800-1307-Stage-I-WithReward \
+               --motion-file data/act01_attack_uppercut.npz \
+               --env.scene.num-envs 8192 \
+               --env.commands.motion.sampling-mode adaptive \
+               --gpu-ids \"[0]\" \
+               --video True --video-interval 20000 \
+               --agent.resume True \
+               --agent.load-run \"\$RUN_DIR\" \
+               --agent.load-checkpoint \"\$CKPT\"
+           '" C-m
+
+    echo "✅ train_C 已启动 (GPU $GPU, 从 model_21000 继续)"
+    echo "   连接: tmux attach -t train_C"
+}
+
+train_D() {
+    local GPU="1"
+    local RUN_DIR="2026-06-03_02-20-40"
+    local CKPT="model_7500.pt"
+
+    tmux kill-session -t train_D 2>/dev/null
+    tmux new-session -d -s train_D -n "train_D"
+
+    tmux send-keys -t train_D:0 \
+        "cd $PROJECT_DIR && \
+         docker run -it --rm --gpus all \
+           -e CUDA_VISIBLE_DEVICES=$GPU \
+           -v ./unitree_rl_mjlab/:/workspace/unitree_rl_mjlab/ \
+           -v ./logs:/workspace/logs \
+           -e RUN_DIR=$RUN_DIR \
+           -e CKPT=$CKPT \
+           $DOCKER_IMAGE bash -c '
+             cd /workspace/unitree_rl_mjlab && \
+             WANDB_MODE=disabled python scripts/train.py T800-1307-Stage-I-WithReward-OnlyBase \
+               --motion-file data/act01_attack_uppercut.npz \
+               --env.scene.num-envs 8192 \
+               --env.commands.motion.sampling-mode adaptive \
+               --gpu-ids \"[0]\" \
+               --video True --video-interval 20000 \
+               --agent.resume True \
+               --agent.load-run \"\$RUN_DIR\" \
+               --agent.load-checkpoint \"\$CKPT\"
+           '" C-m
+
+    echo "✅ train_D 已启动 (GPU $GPU, OnlyBase 配置从 model_7500 继续)"
+    echo "   连接: tmux attach -t train_D"
+}
+
 attach() {
     tmux attach -t $SESSION
 }
@@ -146,7 +238,10 @@ status() {
 
 case "${1:-attach}" in
     start)    start ;;
+    train_A)  train_A ;;
     train_B)  train_B ;;
+    train_C)  train_C ;;
+    train_D)  train_D ;;
     fresh)    fresh ;;
     attach|a) attach ;;
     kill|k)   kill ;;
@@ -154,9 +249,11 @@ case "${1:-attach}" in
     logs)     logs ;;
     status|s) status ;;
     *)
-        echo "用法: $0 {start|train_B|fresh|attach|kill|list|logs|status}"
+        echo "用法: $0 {start|train_B|train_C|fresh|attach|kill|list|logs|status}"
         echo "  start     全新训练（双卡，无额外奖励）"
         echo "  train_B   GPU$TRAIN_B_GPU 从 checkpoint 继续（加躯干奖励）"
+        echo "  train_C   GPU0 从 21000 继续（加躯干奖励）"
+        echo "  train_D   GPU1 从 02-20-40 继续（OnlyBase 原始配置）"
         echo "  fresh     GPU$TRAIN_B_GPU 全新训练（加躯干奖励）"
         echo "  attach/a  连接 tmux 会话"
         echo "  kill/k    终止训练"
